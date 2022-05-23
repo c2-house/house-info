@@ -44,19 +44,12 @@ class SHRequest:
         return self.__get_pages()
 
 
-"""
-TODO: 
-1. 1페이지의 1번째 글만 가져오도록 되어있음 -> 1 page의 모든 글을 가져올 수 있도록 해야함
-2. 새로올라온 글 New가 떠있는데 이것을 어떻게 처리할 것인지 정해야함, 2 page부터는 title의 class 이름이 다름
-"""
-
-
 class SHPagePreprocessorMixin:
     """
     Page Source 전처리 Mixin
     """
 
-    def get_title(self, raw_html: ResultSet) -> str:
+    def get_title(self, raw_html: ResultSet = None, index: int = 1) -> str:
         """
         '사이트 스타일이 바뀌면 코드를 다시 작성해야함'
 
@@ -65,22 +58,29 @@ class SHPagePreprocessorMixin:
         index[1] -> title
         """
         try:
-            title = raw_html[1].find_all("a", attrs={"class": "ellipsis icon"})
+            title = raw_html[index].find_all("a", attrs={"class": "ellipsis icon"})
+            if title == []:
+                title = raw_html[index].find_all("a", attrs={"class": "ellipsis"})
             title = title[0].get_text()
             title = title.rstrip().strip().split("\r")
             title = list(map(lambda x: x.strip().rstrip(), title))
             title = list(filter(lambda x: x != "", title))
-            new, title = title
-            return new, title
-        except ValueError as e:
-            logger.debug("새로운 글이 아님")
+
+            if len(title) == 2:
+                _, title = title
+            else:
+                _, title = False, title.pop()
             return title
 
-    def get_index(self, raw_html: ResultSet) -> int:
+        except ValueError as e:
+            logger.debug("글제목 없음")
+            return title
+
+    def get_index(self, raw_html: ResultSet = None, index: int = 1) -> int:
         """
         게시물 index 가져오기
         """
-        index = raw_html[1].find("td")
+        index = raw_html[index].find("td")
         index = index.get_text()
         try:
             if index.isnumeric():
@@ -89,25 +89,25 @@ class SHPagePreprocessorMixin:
             logger.debug("index가 number가 아님")
             return 9999999
 
-    def get_department(self, raw_html: ResultSet) -> str:
+    def get_department(self, raw_html: ResultSet = None, index: int = 1) -> str:
         """
         담당부서 가져오기
         """
         try:
-            department = raw_html[1].find_all("td")[2].get_text()
+            department = raw_html[index].find_all("td")[2].get_text()
             department = department.strip().rstrip()
             return department
         except ValueError as e:
             logger.debug("담당부서 없음")
             return "담당부서 없음"
 
-    def get_registration_date(self, raw_html: ResultSet) -> str:
+    def get_registration_date(self, raw_html: ResultSet = None, index: int = 1) -> str:
         """
         등록일 가져오기
         """
         try:
             registration_date = (
-                raw_html[1].find_all("td", attrs={"class": "num"})[0].get_text()
+                raw_html[index].find_all("td", attrs={"class": "num"})[0].get_text()
             )
             registration_date = registration_date.strip().rstrip()
             return registration_date
@@ -142,21 +142,28 @@ class SHTable(SHPagePreprocessorMixin):
         DataFrame의 column: 인덱스, 제목, 담당부서, 등록일자
         """
         data_dict = defaultdict(list)
+
         for page in pages:
             result = self._get_row_data(page)
-            data_dict["인덱스"].append(result[0])
-            data_dict["제목"].append(result[0])
-            data_dict["담당부서"].append(result[0])
-            data_dict["등록일자"].append(result[0])
+            data_dict["인덱스"].extend(result[0])
+            data_dict["제목"].extend(result[1])
+            data_dict["담당부서"].extend(result[2])
+            data_dict["등록일자"].extend(result[3])
         return data_dict
 
     def _get_row_data(self, page) -> SHColumn:
         """
         page에서 필요한 요소 추출
         """
-        index = self.get_index(page)
-        title = self.get_title(page)
-        department = self.get_department(page)
-        registration_date = self.get_registration_date(page)
-        result = (index, title, department, registration_date)
+        # post_length: page내 게시물 개수 -> 10개의 게시물이어야함
+        # index 1 ~ 10
+        post_length = 10
+
+        index_list, title_list, department_list, registration_date_list = [], [], [], []
+        for i in range(1, post_length + 1):
+            index_list.append(self.get_index(page, i))
+            title_list.append(self.get_title(page, i))
+            department_list.append(self.get_department(page, i))
+            registration_date_list.append(self.get_registration_date(page, i))
+        result = (index_list, title_list, department_list, registration_date_list)
         return result
