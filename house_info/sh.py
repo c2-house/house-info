@@ -2,7 +2,6 @@ from typing import List, Final
 from collections import defaultdict
 import pandas as pd
 from requests import Session, Response
-from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup, ResultSet
 from house_info.utils import PageList, logger, DataFrame, SHColumn
 from house_info.mixins import MultiThreadingRequestMixin
