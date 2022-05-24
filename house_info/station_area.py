@@ -1,11 +1,14 @@
 import time
 from typing import Final
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, ResultSet
+import pandas as pd
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from house_info.utils import DataFrame
 
 
+# TODO: typing needed
 class StationAreaRequest:
     """
     역세권 청년주택 정보 수집
@@ -67,3 +70,69 @@ class StationAreaRequest:
             post_list_sources.append(post_list)
         browser.close()
         return post_list_sources
+
+    def __call__(self):
+        return self.create_post_list_sources()
+
+
+class StationAreaTable:
+    def __init__(self, page_sources):
+        self.page_sources = page_sources
+
+    def get_data(self):
+        index, _type, title, registration_date, subscription_date, manager = (
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
+
+        for page_source in self.page_sources:
+            for post in page_source:
+                items = post.find_all("td")
+                index.append(items.pop(0).get_text().strip())
+                _type.append(items.pop(0).get_text().strip())
+                title.append(items.pop(0).get_text().strip())
+                registration_date.append(items.pop(0).get_text().strip())
+                subscription_date.append(items.pop(0).get_text().strip())
+                manager.append(items.pop(0).get_text().strip())
+        return index, _type, title, registration_date, subscription_date, manager
+
+    def get_data_dict(self):
+        data = self.get_data()
+        data_dict = {
+            "인덱스": data[0],
+            "유형": data[1],
+            "제목": data[2],
+            "게시일": data[3],
+            "청약신청일": data[4],
+            "담당자": data[5],
+        }
+        return data_dict
+
+    def create_data_frame(self):
+        data_dict = self.get_data_dict()
+        data_frame = pd.DataFrame(data=data_dict)
+        return data_frame
+
+
+class StationAreaDataManager:
+    def __init__(self, chrome_driver_path: str, page: int = 1) -> None:
+        self.request = StationAreaRequest(chrome_driver_path, page)
+
+    def create_page_sources(self) -> ResultSet:
+        page_sources = self.request()
+        return page_sources
+
+    def get_data_frame(self, page_sources) -> DataFrame:
+        data_table = StationAreaTable(page_sources)
+        data_table = data_table.create_data_frame()
+        return data_table
+
+    def export_csv(self, path: str) -> None:
+        page_sources = self.create_page_sources()
+        data_table = self.get_data_frame(page_sources)
+
+        data_table.to_csv(path, index=False)
