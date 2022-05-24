@@ -1,11 +1,12 @@
 import logging
-from typing import Tuple
+from typing import Tuple, List
 import pandas as pd
 
 
 logger = logging.getLogger(__name__)
 DataFrame = pd.DataFrame
 SHColumn = Tuple[int, str, str, str]
+LIST_IN_TUPLE = Tuple[List, List, List, List, List, List]
 
 
 class PageList(list):

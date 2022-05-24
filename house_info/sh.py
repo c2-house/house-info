@@ -8,7 +8,7 @@ from house_info.mixins import MultiThreadingRequestMixin
 
 
 class SHRequest(MultiThreadingRequestMixin):
-    SH_URL: Final = "https://www.i-sh.co.kr/main/lay2/program/S1T294C297/www/brd/m_247/list.do?page="
+    URL: Final = "https://www.i-sh.co.kr/main/lay2/program/S1T294C297/www/brd/m_247/list.do?page="
 
     def __init__(self, page: int = 1, thread: bool = False) -> None:
         self.page: int = page
@@ -31,7 +31,7 @@ class SHRequest(MultiThreadingRequestMixin):
         """
         page number list를 기준으로 page url list up 하기
         """
-        urls = [SHRequest.SH_URL + str(page) for page in self.__pages]
+        urls = [SHRequest.URL + str(page) for page in self.__pages]
         return urls
 
     def send_requests(self, url: str) -> Response:

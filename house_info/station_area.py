@@ -1,22 +1,22 @@
 import time
-from typing import Final
-from bs4 import BeautifulSoup, ResultSet
+from typing import Final, List, Tuple, Dict
+from bs4 import ResultSet
 import pandas as pd
-from selenium.webdriver import Chrome
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from house_info.utils import DataFrame
+from selenium.webdriver.chrome.webdriver import WebDriver
+from house_info.base import BaseSelRequest
+from house_info.utils import DataFrame, LIST_IN_TUPLE
 
 
 # TODO: typing needed
-class StationAreaRequest:
+class StationAreaRequest(BaseSelRequest):
     """
     역세권 청년주택 정보 수집
     민간, 공공 포함
     :ChromeDriver 필요
     """
 
-    SA_URL: Final = "https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008"
+    URL: Final = "https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008"
 
     def __init__(
         self, chrome_driver_path: str = "./chromedriver.exe", page: int = 1
@@ -24,33 +24,17 @@ class StationAreaRequest:
         self.__service = Service(chrome_driver_path)
         self.page = page
 
-    def browser_open_headless(self):
-        chrome_option = Options()
-        chrome_option.add_argument("--headless")
-        browser = Chrome(service=self.__service, options=chrome_option)
-        browser.implicitly_wait(2)
-        browser.get(StationAreaRequest.SA_URL)
-        return browser
-
-    def get_page_source(self, browser):
-        page_source = browser.page_source
-        return page_source
-
-    def parse_html(self, page_source):
-        soup = BeautifulSoup(page_source, "html.parser")
-        return soup
-
-    def get_post_list(self, soup):
+    def get_post_list(self, soup) -> List:
         post_list = soup.find("tbody", attrs={"id": "boardList"}).find_all("tr")
         if not post_list:
             return None
         return post_list
 
-    def move_next_page(self, browser, page):
+    def move_next_page(self, browser: WebDriver, page: int):
         browser.execute_script(f"cohomeList({page})")
         return browser
 
-    def create_post_list_sources(self):
+    def create_post_list_sources(self) -> List[ResultSet]:
         browser = self.browser_open_headless()
         page_source = self.get_page_source(browser)
         parsed_html = self.parse_html(page_source)
@@ -76,10 +60,10 @@ class StationAreaRequest:
 
 
 class StationAreaTable:
-    def __init__(self, page_sources):
+    def __init__(self, page_sources: LIST_IN_TUPLE) -> None:
         self.page_sources = page_sources
 
-    def get_data(self):
+    def get_data(self) -> Tuple[List]:
         index, _type, title, registration_date, subscription_date, manager = (
             [],
             [],
@@ -100,7 +84,7 @@ class StationAreaTable:
                 manager.append(items.pop(0).get_text().strip())
         return index, _type, title, registration_date, subscription_date, manager
 
-    def get_data_dict(self):
+    def get_data_dict(self) -> Dict[str, List[str]]:
         data = self.get_data()
         data_dict = {
             "인덱스": data[0],
@@ -112,7 +96,7 @@ class StationAreaTable:
         }
         return data_dict
 
-    def create_data_frame(self):
+    def create_data_frame(self) -> DataFrame:
         data_dict = self.get_data_dict()
         data_frame = pd.DataFrame(data=data_dict)
         return data_frame

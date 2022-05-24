@@ -1,22 +1,16 @@
 import time
 from typing import Final
-from bs4 import BeautifulSoup, ResultSet
-import pandas as pd
-from selenium.webdriver import Chrome
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
-from house_info.utils import DataFrame
+from house_info.base import BaseSelRequest
 
 
-class MyHomeRequest:
+class MyHomeRequest(BaseSelRequest):
     """
     마이홈 포털 정보 수집
     :ChromeDriver 필요
     """
 
-    MYHOME_URL: Final = (
-        "https://www.myhome.go.kr/hws/portal/sch/selectRsdtRcritNtcView.do"
-    )
+    URL: Final = "https://www.myhome.go.kr/hws/portal/sch/selectRsdtRcritNtcView.do"
 
     def __init__(
         self,
@@ -30,27 +24,11 @@ class MyHomeRequest:
         self.types = types
         self.region = region
 
-    def browser_open_headless(self):
-        chrome_option = Options()
-        chrome_option.add_argument("--headless")
-        browser = Chrome(service=self.__service, options=chrome_option)
-        browser.implicitly_wait(2)
-        browser.get(MyHomeRequest.MYHOME_URL)
-        return browser
-
-    def get_page_source(self, browser):
-        page_source = browser.page_source
-        return page_source
-
     def get_post_list(self, soup):
         post_list = soup.find("tbody", attrs={"id": "schTbody"}).find_all("tr")
         if not post_list:
             return None
         return post_list
-
-    def parse_html(self, page_source):
-        soup = BeautifulSoup(page_source, "html.parser")
-        return soup
 
     def move_next_page(self, browser, page):
         browser.execute_script(f"fnSearch({page})")
