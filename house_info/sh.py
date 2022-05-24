@@ -2,16 +2,19 @@ from typing import List, Final
 from collections import defaultdict
 import pandas as pd
 from requests import Session, Response
+from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup, ResultSet
 from house_info.utils import PageList, logger, DataFrame, SHColumn
+from house_info.mixins import MultiThreadingRequestMixin
 
 
-class SHRequest:
+class SHRequest(MultiThreadingRequestMixin):
     SH_URL: Final = "https://www.i-sh.co.kr/main/lay2/program/S1T294C297/www/brd/m_247/list.do?page="
 
-    def __init__(self, page=1):
+    def __init__(self, page: int = 1, thread: bool = False) -> None:
         self.page: int = page
         self.__pages: List[int] = self.__get_page_numbers()
+        self.thread: bool = thread
 
     def __get_page_numbers(self) -> List[int]:
         """
@@ -20,7 +23,7 @@ class SHRequest:
         page_numbers = [i for i in range(1, self.page + 1)]
         return page_numbers
 
-    def __get_pages(self):
+    def __get_pages(self) -> PageList:
         urls = self.get_urls()
         pages = PageList([self.send_requests(url).text for url in urls])
         return pages
@@ -41,6 +44,9 @@ class SHRequest:
             return response
 
     def __call__(self):
+        if self.thread:
+            urls = self.get_urls()
+            return self.get_pages_with_multi_threading(urls)
         return self.__get_pages()
 
 
@@ -119,20 +125,20 @@ class SHPagePreprocessorMixin:
 class SHTable(SHPagePreprocessorMixin):
     """
     Pandas DataFrame 구조로 Table 객체 생성
-    page_source : SHRequest로 받아온 페이지 목록 리스트
+    page_sources : SHRequest로 받아온 페이지 목록 리스트
     """
 
-    def __init__(self, page_source: PageList):
-        assert page_source.__class__ == PageList, "SHRequest로 받아온 Page Source만 전처리 가능"
-        self.page_source = [
-            BeautifulSoup(page, "html.parser").find_all("tr") for page in page_source
+    def __init__(self, page_sources: PageList):
+        assert page_sources.__class__ == PageList, "SHRequest로 받아온 Page Source만 전처리 가능"
+        self.page_sources = [
+            BeautifulSoup(page, "html.parser").find_all("tr") for page in page_sources
         ]
 
     def create_data_frame(self) -> DataFrame:
         """
         Dataframe 생성
         """
-        data = self._get_data_dict(self.page_source)
+        data = self._get_data_dict(self.page_sources)
         data_frame = pd.DataFrame(data=data)
         return data_frame
 
@@ -167,3 +173,23 @@ class SHTable(SHPagePreprocessorMixin):
             registration_date_list.append(self.get_registration_date(page, i))
         result = (index_list, title_list, department_list, registration_date_list)
         return result
+
+
+class SHDataManager:
+    def __init__(self, page: int = 1, thread: bool = False) -> None:
+        self.request = SHRequest(page, thread)
+
+    def create_page_sources(self) -> ResultSet:
+        page_sources = self.request()
+        return page_sources
+
+    def get_data_frame(self, page_sources) -> DataFrame:
+        data_table = SHTable(page_sources)
+        data_table = data_table.create_data_frame()
+        return data_table
+
+    def export_csv(self, path: str) -> None:
+        page_sources = self.create_page_sources()
+        data_table = self.get_data_frame(page_sources)
+
+        data_table.to_csv(path, index=False)

@@ -2,6 +2,7 @@ import logging
 from typing import Tuple
 import pandas as pd
 
+
 logger = logging.getLogger(__name__)
 DataFrame = pd.DataFrame
 SHColumn = Tuple[int, str, str, str]
