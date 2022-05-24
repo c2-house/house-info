@@ -21,8 +21,7 @@ class StationAreaRequest(BaseSelRequest):
     def __init__(
         self, chrome_driver_path: str = "./chromedriver.exe", page: int = 1
     ) -> None:
-        self.__service = Service(chrome_driver_path)
-        self.page = page
+        super(StationAreaRequest, self).__init__(chrome_driver_path, page)
 
     def get_post_list(self, soup) -> List:
         post_list = soup.find("tbody", attrs={"id": "boardList"}).find_all("tr")

@@ -19,8 +19,7 @@ class MyHomeRequest(BaseSelRequest):
         types="student",
         region="seoul",
     ) -> None:
-        self.__service = Service(chrome_driver_path)
-        self.page = page
+        super(MyHomeRequest, self).__init__(chrome_driver_path, page)
         self.types = types
         self.region = region
 
@@ -43,7 +42,7 @@ class MyHomeRequest(BaseSelRequest):
 
     def create_post_list_sources(self):
         browser = self.browser_open_headless()
-        click_category = self.click_category(browser)
+        browser = self.click_category(browser)
         time.sleep(1)
         page_source = self.get_page_source(browser)
         parsed_html = self.parse_html(page_source)
