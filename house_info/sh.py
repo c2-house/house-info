@@ -42,7 +42,7 @@ class SHRequest(MultiThreadingRequestMixin):
             response = s.get(url)
             return response
 
-    def __call__(self):
+    def __call__(self) -> PageList:
         if self.thread:
             urls = self.get_urls()
             return self.get_pages_with_multi_threading(urls)

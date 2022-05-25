@@ -1,4 +1,4 @@
-from typing import Final, List
+from typing import List
 from bs4 import BeautifulSoup, ResultSet
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
@@ -11,11 +11,9 @@ class BaseSelRequest:
     selenium을 사용하는 요청 Base
     """
 
-    URL: Final = None
+    URL: str = "url"
 
-    def __init__(
-        self, chrome_driver_path: str = "./chromedriver.exe", page: int = 1
-    ) -> None:
+    def __init__(self, chrome_driver_path: str, page: int = 1) -> None:
         self.__service = Service(chrome_driver_path)
         self.page = page
 
