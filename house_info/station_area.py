@@ -2,10 +2,9 @@ import time
 from typing import Final, List, Tuple, Dict
 from bs4 import ResultSet
 import pandas as pd
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.webdriver import WebDriver
 from house_info.base import BaseSelRequest
-from house_info.utils import DataFrame, LIST_IN_TUPLE
+from house_info.utils import DataFrame, LIST_IN_TUPLE, PageList
 
 
 # TODO: typing needed
@@ -18,9 +17,7 @@ class StationAreaRequest(BaseSelRequest):
 
     URL: Final = "https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008"
 
-    def __init__(
-        self, chrome_driver_path: str = "./chromedriver.exe", page: int = 1
-    ) -> None:
+    def __init__(self, chrome_driver_path: str, page: int = 1) -> None:
         super(StationAreaRequest, self).__init__(chrome_driver_path, page)
 
     def get_post_list(self, soup) -> List:
@@ -33,12 +30,12 @@ class StationAreaRequest(BaseSelRequest):
         browser.execute_script(f"cohomeList({page})")
         return browser
 
-    def create_post_list_sources(self) -> List[ResultSet]:
+    def create_post_list_sources(self) -> PageList[ResultSet]:
         browser = self.browser_open_headless()
         page_source = self.get_page_source(browser)
         parsed_html = self.parse_html(page_source)
         post_list = self.get_post_list(parsed_html)
-        post_list_sources = [post_list]
+        post_list_sources = PageList([post_list])
 
         for page in range(2, self.page + 1):
             self.move_next_page(browser, page)
@@ -51,7 +48,6 @@ class StationAreaRequest(BaseSelRequest):
             if not post_list:
                 break
             post_list_sources.append(post_list)
-        browser.close()
         return post_list_sources
 
     def __call__(self):
@@ -63,7 +59,8 @@ class StationAreaTable:
         self.page_sources = page_sources
 
     def get_data(self) -> Tuple[List]:
-        index, _type, title, registration_date, subscription_date, manager = (
+        index, _type, title, link, registration_date, subscription_date, manager = (
+            [],
             [],
             [],
             [],
@@ -77,11 +74,19 @@ class StationAreaTable:
                 items = post.find_all("td")
                 index.append(items.pop(0).get_text().strip())
                 _type.append(items.pop(0).get_text().strip())
-                title.append(items.pop(0).get_text().strip())
+
+                title_tag = items.pop(0)
+                url = (
+                    "https://soco.seoul.go.kr/youth/bbs/BMSR00015/"
+                    + title_tag.find("a").attrs["href"]
+                )
+                link.append(url)
+
+                title.append(title_tag.get_text().strip())
                 registration_date.append(items.pop(0).get_text().strip())
                 subscription_date.append(items.pop(0).get_text().strip())
                 manager.append(items.pop(0).get_text().strip())
-        return index, _type, title, registration_date, subscription_date, manager
+        return index, _type, title, registration_date, subscription_date, manager, link
 
     def get_data_dict(self) -> Dict[str, List[str]]:
         data = self.get_data()
@@ -92,6 +97,7 @@ class StationAreaTable:
             "게시일": data[3],
             "청약신청일": data[4],
             "담당자": data[5],
+            "링크": data[6],
         }
         return data_dict
 
