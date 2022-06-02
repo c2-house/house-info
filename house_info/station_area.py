@@ -7,7 +7,6 @@ from house_info.base import BaseSelRequest
 from house_info.utils import DataFrame, LIST_IN_TUPLE, PageList
 
 
-# TODO: typing needed
 class StationAreaRequest(BaseSelRequest):
     """
     역세권 청년주택 정보 수집
@@ -30,7 +29,7 @@ class StationAreaRequest(BaseSelRequest):
         browser.execute_script(f"cohomeList({page})")
         return browser
 
-    def create_post_list_sources(self) -> PageList[ResultSet]:
+    def create_post_list_sources(self) -> PageList:
         browser = self.browser_open_headless()
         page_source = self.get_page_source(browser)
         parsed_html = self.parse_html(page_source)
