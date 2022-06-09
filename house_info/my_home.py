@@ -1,6 +1,6 @@
 import re
 import time
-from typing import Final, Dict
+from typing import Final, Dict, List
 import pandas as pd
 from bs4 import BeautifulSoup, ResultSet
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -22,8 +22,9 @@ class MyHomeRequest(BaseSelRequest):
         page: int = 1,
         types: str = "student",
         region: str = "seoul",
+        options: List[str] = None,
     ) -> None:
-        super(MyHomeRequest, self).__init__(chrome_driver_path, page)
+        super(MyHomeRequest, self).__init__(chrome_driver_path, page, options)
         self.types = types
         self.region = region
 
@@ -57,6 +58,8 @@ class MyHomeRequest(BaseSelRequest):
             browser.execute_script("fnSchKoreaMapClick('41');")
             time.sleep(1.5)
             browser.execute_script("setUserTy('FIXES100002');")
+        browser.execute_script("fnSchMapBtnClick('dl_srchSuplyTy','srchSuplyTy_10');")
+        browser.execute_script("fnSearch('1')")
         return browser
 
     def create_post_list_sources(self) -> PageList:
@@ -159,8 +162,9 @@ class MyHomeDataManager:
         page: int = 1,
         types: str = "student",
         region: str = "seoul",
+        options: List[str] = None,
     ) -> None:
-        self.request = MyHomeRequest(chrome_driver_path, page, types, region)
+        self.request = MyHomeRequest(chrome_driver_path, page, types, region, options)
 
     def create_page_sources(self) -> PageList:
         page_sources = self.request()

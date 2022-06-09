@@ -13,17 +13,25 @@ class BaseSelRequest:
 
     URL: str = "url"
 
-    def __init__(self, chrome_driver_path: str, page: int = 1) -> None:
+    def __init__(
+        self, chrome_driver_path: str, page: int = 1, options: List[str] = None
+    ) -> None:
         self.__service = Service(chrome_driver_path)
         self.page = page
+        self.options = options
 
     def browser_open_headless(self) -> WebDriver:
-        chrome_option = Options()
-        chrome_option.add_argument("--headless")
+        chrome_option = self._get_chrome_options()
         browser = Chrome(service=self.__service, options=chrome_option)
         browser.implicitly_wait(2)
         browser.get(self.URL)
         return browser
+
+    def _get_chrome_options(self) -> Options:
+        chrome_option = Options()
+        for opt in self.options:
+            chrome_option.add_argument("--" + opt)
+        return chrome_option
 
     def get_page_source(self, browser: WebDriver):
         page_source = browser.page_source

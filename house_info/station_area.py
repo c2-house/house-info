@@ -16,8 +16,10 @@ class StationAreaRequest(BaseSelRequest):
 
     URL: Final = "https://soco.seoul.go.kr/youth/bbs/BMSR00015/list.do?menuNo=400008"
 
-    def __init__(self, chrome_driver_path: str, page: int = 1) -> None:
-        super(StationAreaRequest, self).__init__(chrome_driver_path, page)
+    def __init__(
+        self, chrome_driver_path: str, page: int = 1, options: List[str] = None
+    ) -> None:
+        super(StationAreaRequest, self).__init__(chrome_driver_path, page, options)
 
     def get_post_list(self, soup) -> List:
         post_list = soup.find("tbody", attrs={"id": "boardList"}).find_all("tr")
@@ -107,8 +109,10 @@ class StationAreaTable:
 
 
 class StationAreaDataManager:
-    def __init__(self, chrome_driver_path: str, page: int = 1) -> None:
-        self.request = StationAreaRequest(chrome_driver_path, page)
+    def __init__(
+        self, chrome_driver_path: str, page: int = 1, options: List[str] = None
+    ) -> None:
+        self.request = StationAreaRequest(chrome_driver_path, page, options)
 
     def create_page_sources(self) -> ResultSet:
         page_sources = self.request()

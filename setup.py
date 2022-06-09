@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="house-info",
-    version="0.0.2",
+    version="0.0.4",
     description="공공 주택 공고 정보 수집",
     author="Jungminchae",
     author_email="minggae0629@gmail.com",
